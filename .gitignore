@@ -1,3 +1,15 @@
+# manually added 
+
+# Mac specific Finder metadata
+.DS_Store
+
+# examples have private location data in 'em
+example-data/
+
+
+
+# # # # # # # # #
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
