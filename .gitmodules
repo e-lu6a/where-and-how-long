@@ -1,0 +1,3 @@
+[submodule "closestgeoname"]
+	path = closestgeoname
+	url = https://github.com/evanjt/closestgeoname.git
