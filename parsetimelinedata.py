@@ -1,11 +1,11 @@
-
-
 import sys
 import json
 import datetime
 
-from geopy.geocoders import Nominatim
-geolocator = Nominatim(user_agent="e-lu6a", timeout=10)
+import closestgeoname.closestgeoname as closestgeoname
+# couldn't figure out how to get closestgeoname.py to read constants.py
+# when operating as a submodule, so specifying DBFILENAME directly instead
+DBFILENAME = './closestgeoname/geonames.sqlite'
 
 # take command line input as a file (assumed to be json), open it, 
 # read it, load it, and then close the file
@@ -14,7 +14,7 @@ with open(sys.argv[1], "r") as file:
 
 timeline_objects = data["timelineObjects"]
 
-cities = {}
+places = {}
 
 for i in timeline_objects:
     lat = ""
@@ -23,30 +23,41 @@ for i in timeline_objects:
     if "activitySegment" in i:
         entry = i["activitySegment"]
 
-        lat = str(entry["endLocation"]["latitudeE7"]/(10**7))
-        long = str(entry["endLocation"]["longitudeE7"]/(10**7))
+        lat = entry["endLocation"]["latitudeE7"]/(10**7)
+        long = entry["endLocation"]["longitudeE7"]/(10**7)
     elif "placeVisit" in i:
         entry = i["placeVisit"]
 
-        lat = str(entry["location"]["latitudeE7"]/(10**7))
-        long = str(entry["location"]["longitudeE7"]/(10**7))
+        lat = entry["location"]["latitudeE7"]/(10**7)
+        long = entry["location"]["longitudeE7"]/(10**7)
 
     # get the location
-    # we could theoretically get the location directly by parsing the address
-    # instead of using geopy; also nominatim has a 1 request / second limit
-    location = geolocator.reverse(lat + "," + long)
-    city = location.raw["address"]["city"]
+    localdb_response = closestgeoname.query_closest_city(DBFILENAME, lat, long)
 
-    # find the time spent
-    start_time = datetime.datetime.fromisoformat(entry["duration"]["startTimestamp"])
-    end_time = datetime.datetime.fromisoformat(entry["duration"]["endTimestamp"])
-    duration = end_time - start_time
+    if localdb_response is not None:
+        place = str(localdb_response[0]) + ", " + str(localdb_response[2])
 
-    # add the entry
-    if city in cities:
-        cities[city] += duration
-    else: 
-        cities[city] = duration
+        # find the time spent
+        start_time = datetime.datetime.fromisoformat(entry["duration"]["startTimestamp"])
+        end_time = datetime.datetime.fromisoformat(entry["duration"]["endTimestamp"])
+        duration = end_time - start_time
 
-for city in cities:
-    print(city, ": ", cities[city])
+        # add the entry
+        if place in places:
+            places[place] += duration
+        else: 
+            places[place] = duration
+    else:
+        print(f"could not find the location for {lat}, {long}; skipping entry")
+
+for place in places:
+    print(place, ":", places[place])
+
+def years_months_weeks_hours_days_minutes(td):
+    # check conversion code
+    years, remainder = divmod(td.days, 365)
+    months, remainder = divmod(remainder, 30.4)
+    weeks, days = divmod(remainder, 7)
+
+    hours, remainder = divmod(td.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
