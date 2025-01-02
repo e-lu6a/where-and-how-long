@@ -5,7 +5,7 @@ where.
 
 ## log
 
-have since updated to use a local database, but haven't tried running this in a while.\ 
+have since updated to use a local database, but haven't tried running this in a while.\
 configuring python to run well is a doozy. 
 
 **april 16 2024**\
